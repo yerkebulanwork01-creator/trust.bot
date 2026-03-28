@@ -29,7 +29,7 @@ module.exports = async function handler(req, res) {
         'X-Title': 'SKT Chatbot'
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct:free',
+        model: 'deepseek/deepseek-chat:free',
         messages: [
           {
             role: 'user',
