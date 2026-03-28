@@ -117,7 +117,7 @@ module.exports = async function handler(req, res) {
     const systemPrompt = 'Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.\nҚАТАҢ ЕРЕЖЕЛЕР:\n1. ТЕК төмендегі ҚҰЖАТ БАЗАСЫНДАҒЫ ақпаратқа сүйен.\n2. Базада жоқ ақпаратты ЕШҚАШАН ойдан шығарма.\n3. Базада жоқ болса: "Бұл туралы ақпарат базада жоқ. Қорға хабарласыңыз: info@sk-trust.kz немесе +7 (7172) 57 68 98" деп айт.\n4. Қазақша сұраққа қазақша, орысша сұраққа орысша жауап бер.\n5. Нақты, қысқа жауап бер.\n\nҚҰЖАТ БАЗАСЫ:\n---\n' + KNOWLEDGE_BASE + '\n---';
 
     const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' + apiKey,
+      ''https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
