@@ -20,7 +20,7 @@ exports.handler = async (event) => {
     // Load knowledge base
     let knowledgeBase = '';
     try {
-      const docsPath = path.join(__dirname, '../../knowledge/docs.txt');
+      const docsPath = path.join(__dirname, 'docs.txt');
       knowledgeBase = fs.readFileSync(docsPath, 'utf8');
     } catch (e) {
       knowledgeBase = 'Құжат базасы бос.';
