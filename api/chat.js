@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     try {
       const fs = await import('fs');
       const path = await import('path');
-      const docsPath = path.join(process.cwd(), 'docs.txt');
+const docsPath = path.join(path.dirname(new URL(import.meta.url).pathname), 'docs.txt');
       knowledgeBase = fs.readFileSync(docsPath, 'utf8');
     } catch (e) {}
 
