@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Қор Ассистенті</title>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #151820;
+    --surface2: #1c2030;
+    --border: #252a38;
+    --accent: #3d8bff;
+    --accent-dim: rgba(61,139,255,0.12);
+    --text: #e8eaf0;
+    --text-muted: #6b7494;
+    --user-bg: #1a2540;
+    --bot-bg: #151820;
+    --success: #2dd4a0;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Golos Text', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .logo {
+    width: 36px; height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+
+  .header-info h1 {
+    font-size: 15px; font-weight: 600; color: var(--text);
+  }
+  .header-info p {
+    font-size: 12px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--success);
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Messages area */
+  #messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+
+  #messages::-webkit-scrollbar { width: 4px; }
+  #messages::-webkit-scrollbar-track { background: transparent; }
+  #messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* Welcome */
+  .welcome {
+    text-align: center;
+    padding: 40px 20px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+  }
+  .welcome-icon { font-size: 40px; margin-bottom: 16px; }
+  .welcome h2 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .welcome p { color: var(--text-muted); font-size: 14px; line-height: 1.6; }
+
+  .suggestions {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .suggestion-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Golos Text', sans-serif;
+    transition: all 0.2s;
+  }
+  .suggestion-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-dim);
+  }
+
+  /* Message bubbles */
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 780px;
+    width: 100%;
+    margin: 0 auto;
+    opacity: 0;
+    animation: fadeUp 0.3s ease forwards;
+  }
+
+  .message.user { flex-direction: row-reverse; }
+
+  .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px; flex-shrink: 0; margin-top: 2px;
+  }
+  .message.user .avatar { background: var(--user-bg); border: 1px solid var(--accent); }
+  .message.bot .avatar { background: var(--surface2); border: 1px solid var(--border); }
+
+  .bubble {
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-size: 14px;
+    line-height: 1.65;
+    max-width: calc(100% - 50px);
+  }
+  .message.user .bubble {
+    background: var(--user-bg);
+    border: 1px solid rgba(61,139,255,0.25);
+    border-top-right-radius: 4px;
+    color: var(--text);
+  }
+  .message.bot .bubble {
+    background: var(--bot-bg);
+    border: 1px solid var(--border);
+    border-top-left-radius: 4px;
+  }
+
+  /* Typing indicator */
+  .typing .bubble {
+    display: flex; align-items: center; gap: 5px;
+    padding: 14px 18px;
+  }
+  .dot {
+    width: 7px; height: 7px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+  }
+  .dot:nth-child(2) { animation-delay: 0.2s; }
+  .dot:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-5px); opacity: 1; }
+  }
+
+  /* Input area */
+  footer {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .input-wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+  }
+  .input-wrap:focus-within { border-color: var(--accent); }
+
+  #input {
+    flex: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    font-family: 'Golos Text', sans-serif;
+    resize: none;
+    min-height: 22px;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+  #input::placeholder { color: var(--text-muted); }
+
+  #send-btn {
+    background: var(--accent);
+    border: none;
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  #send-btn:hover { background: #5a9fff; transform: scale(1.05); }
+  #send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
+  #send-btn svg { width: 16px; height: 16px; fill: white; }
+
+  .input-hint {
+    max-width: 780px;
+    margin: 6px auto 0;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    #messages { padding: 16px 10px; }
+    header { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🏛️</div>
+  <div class="header-info">
+    <h1>Қор Ассистенті</h1>
+    <p><span class="status-dot"></span> Желіде</p>
+  </div>
+</header>
+
+<div id="messages">
+  <div class="welcome">
+    <div class="welcome-icon">👋</div>
+    <h2>Сәлем! Мен Қор Ассистентімін</h2>
+    <p>Қордың ережелері, қызметтері және жұмыс тәртібі туралы<br>сұрақтарыңызға жауап беруге дайынмын.</p>
+    <div class="suggestions">
+      <button class="suggestion-btn" onclick="ask(this.innerText)">Қор туралы жалпы ақпарат</button>
+      <button class="suggestion-btn" onclick="ask(this.innerText)">Өтінішті қалай береді?</button>
+      <button class="suggestion-btn" onclick="ask(this.innerText)">Жұмыс уақыты</button>
+      <button class="suggestion-btn" onclick="ask(this.innerText)">Байланыс ақпараты</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="input-wrap">
+    <textarea id="input" placeholder="Сұрағыңызды жазыңыз..." rows="1"></textarea>
+    <button id="send-btn" onclick="sendMessage()" title="Жіберу">
+      <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+    </button>
+  </div>
+  <p class="input-hint">Enter — жіберу &nbsp;·&nbsp; Shift+Enter — жол аудару</p>
+</footer>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('input');
+  const sendBtn = document.getElementById('send-btn');
+
+  // Auto-resize textarea
+  inputEl.addEventListener('input', () => {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + 'px';
+  });
+
+  // Enter to send
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  function ask(text) {
+    inputEl.value = text;
+    sendMessage();
+  }
+
+  function addMessage(role, text) {
+    // Remove welcome screen on first message
+    const welcome = messagesEl.querySelector('.welcome');
+    if (welcome) welcome.remove();
+
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? '👤' : '🏛️';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+
+    if (role === 'typing') {
+      div.className = 'message bot typing';
+      bubble.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    } else {
+      bubble.textContent = text;
+    }
+
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text || sendBtn.disabled) return;
+
+    inputEl.value = '';
+    inputEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    addMessage('user', text);
+    const typingEl = addMessage('typing', '');
+
+    try {
+      const res = await fetch('/.netlify/functions/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json();
+      typingEl.remove();
+
+      if (data.error) {
+        addMessage('bot', '⚠️ Қате орын алды: ' + data.error);
+      } else {
+        addMessage('bot', data.reply);
+      }
+    } catch (e) {
+      typingEl.remove();
+      addMessage('bot', '⚠️ Сервермен байланыс үзілді. Қайталап көріңіз.');
+    }
+
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+</script>
+</body>
+</html>
