@@ -62,8 +62,6 @@ Email: info@sk-trust.kz
 С: Жарғының көшірмесін қоса ұсыну керек пе? Ж: Иә, міндетті.
 С: ЭЦҚ-мен қол қоюға бола ма? Ж: Иә, онлайн беру кезінде.
 С: Сенім телефоны бар ма? Ж: +7 (7172) 57 69 37 / 57 64 97 / 57 66 02.
-С: Мессенджерлер арқылы беруге бола ма? Ж: Жоқ.
-С: Шетелдік ҮЕҰ қабылданады ма? Ж: Жоқ.
 С: Қор қанша жоба жүзеге асырды? Ж: 400-тен астам.
 С: Жыл сайын қанша адам қолдау алады? Ж: 500 000-нан астам.
 С: Қорда қанша адам жұмыс істейді? Ж: 18 адам.
@@ -117,7 +115,7 @@ module.exports = async function handler(req, res) {
     const systemPrompt = 'Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.\nҚАТАҢ ЕРЕЖЕЛЕР:\n1. ТЕК төмендегі ҚҰЖАТ БАЗАСЫНДАҒЫ ақпаратқа сүйен.\n2. Базада жоқ ақпаратты ЕШҚАШАН ойдан шығарма.\n3. Базада жоқ болса: "Бұл туралы ақпарат базада жоқ. Қорға хабарласыңыз: info@sk-trust.kz немесе +7 (7172) 57 68 98" деп айт.\n4. Қазақша сұраққа қазақша, орысша сұраққа орысша жауап бер.\n5. Нақты, қысқа жауап бер.\n\nҚҰЖАТ БАЗАСЫ:\n---\n' + KNOWLEDGE_BASE + '\n---';
 
     const response = await fetch(
-      ''https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + apiKey,
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=' + apiKey,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
