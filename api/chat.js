@@ -386,12 +386,76 @@ const KNOWLEDGE_BASE = `SAMRUK-KAZYNA TRUST — КФ
 ВАЖНО: Если нужной информации нет в базе, рекомендуем обратиться напрямую к менеджерам фонда.
 ====================================================================`;
 
+const FALLBACK_TEXT =
+  'Бұл туралы ақпарат базада жоқ. Қорға хабарласыңыз: info@sk-trust.kz немесе +7(7172)57-68-98';
+
+function normalizeText(text) {
+  return String(text || '')
+    .replace(/[*_#`>-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function enforcePlainText(text) {
+  const cleaned = normalizeText(text);
+
+  if (!cleaned) {
+    return FALLBACK_TEXT;
+  }
+
+  if (
+    cleaned.includes('базада жоқ') ||
+    cleaned.includes('ақпарат жоқ') ||
+    cleaned.includes('не найдено в базе') ||
+    cleaned.includes('нет информации в базе')
+  ) {
+    return FALLBACK_TEXT;
+  }
+
+  return cleaned;
+}
+
 module.exports = async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Тек POST сұрауы қолдау табады' });
+  }
+
   try {
-    const { message } = req.body;
+    const { message } = req.body || {};
     const apiKey = process.env.ANTHROPIC_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'API key конфигурацияланбаған' });
+
+    if (!apiKey) {
+      return res.status(500).json({ error: 'API key конфигурацияланбаған' });
+    }
+
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return res.status(400).json({ error: 'Сұрақ мәтінін жіберіңіз' });
+    }
+
+    const userMessage = message.trim();
+
+    const systemPrompt = `
+Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.
+
+ҚАТАҢ ЕРЕЖЕЛЕР:
+1. ТЕК төмендегі ҚҰЖАТ БАЗАСЫНДАҒЫ ақпаратқа сүйен.
+2. Базада жоқ ақпаратты ЕШҚАШАН ойдан шығарма.
+3. Егер ақпарат базада жоқ болса, тек мына мәтінді дәл қайтар:
+${FALLBACK_TEXT}
+4. Қазақша сұраққа тек қазақша әдеби тілде жауап бер.
+5. Орысша сұраққа тек орысша жауап бер.
+6. Жауап қысқа, нақты болсын.
+7. Markdown, тізім, жұлдызша, тақырыпша, артық форматтау қолданба.
+8. «Samruk-Kazyna Trust», «Trust», «Samruk» атауларын өзгертпе.
+9. Егер сұрақта базада жоқ бірнеше деталь болса, бәрібір тек fallback мәтінін қайтар.
+10. Егер жауапқа толық сенімді болмасаң, fallback мәтінін қайтар.
+11. Жауап тек жай мәтін болсын.
+
+ҚҰЖАТ БАЗАСЫ:
+---
+${KNOWLEDGE_BASE}
+---
+`.trim();
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -402,21 +466,41 @@ module.exports = async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'claude-haiku-4-5-20251001',
-        max_tokens: 800,
-        system: 'Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.\nҚАТАҢ ЕРЕЖЕЛЕР:\n1. ТЕК төмендегі ҚҰЖАТ БАЗАСЫНДАҒЫ ақпаратқа сүйен.\n2. Базада жоқ ақпаратты ЕШҚАШАН ойдан шығарма.\n3. Базада жоқ болса: "Бұл туралы ақпарат базада жоқ. Қорға хабарласыңыз: info@sk-trust.kz немесе +7(7172)57-68-98" деп айт.\n4. Қазақша сұраққа дұрыс әдеби қазақ тілінде жауап бер. Орысша сұраққа орысша жауап бер.\n5. Нақты, қысқа жауап бер.\n6. Markdown белгілерін ҚОЛДАНБА: **, ##, *, _ жазба. Тек қарапайым мәтін.\n7. Атауларды аударма: «Samruk-Kazyna Trust», «Trust», «Samruk» деп қалдыр.\n\nҚҰЖАТ БАЗАСЫ:\n---\n' + KNOWLEDGE_BASE + '\n---',
-        messages: [{ role: 'user', content: message }]
+        system: systemPrompt,
+        max_tokens: 220,
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: userMessage
+          }
+        ]
       })
     });
 
     const data = await response.json();
+
     if (!response.ok) {
-      console.error('Anthropic error:', JSON.stringify(data));
-      return res.status(500).json({ error: 'AI сервис қатесі' });
+      console.error('Anthropic error:', JSON.stringify(data, null, 2));
+      return res.status(500).json({
+        error: data?.error?.message || 'AI сервис қатесі'
+      });
     }
-    const reply = data.content && data.content[0] && data.content[0].text || 'Жауап алынбады.';
-    res.status(200).json({ reply });
+
+    const reply = Array.isArray(data?.content)
+      ? data.content
+          .filter(item => item?.type === 'text')
+          .map(item => item?.text || '')
+          .join(' ')
+      : '';
+
+    return res.status(200).json({
+      reply: enforcePlainText(reply)
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Сервер қатесі: ' + err.message });
+    console.error('Server error:', err);
+    return res.status(500).json({
+      error: 'Сервер қатесі: ' + err.message
+    });
   }
 };
