@@ -1,7 +1,7 @@
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
   const { message } = req.body;
-  const apiKey = process.env.CLAUDE_API_KEY;
+  const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return res.status(500).json({ error: 'API key жоқ' });
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
