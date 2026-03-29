@@ -1,22 +1,19 @@
-const KNOWLEDGE_BASE = `... сенің базаң осы жерде ...`;
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
+  if (req.method !== 'POST') return res.status(405).end();
 
   try {
     const { message, lang } = req.body || {};
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'ANTHROPIC_API_KEY орнатылмаған' });
+      return res.status(500).json({ error: 'API key конфигурацияланбаған' });
     }
 
     const isRu = lang === 'ru';
 
     const system = isRu
       ? `Ты официальный ассистент Корпоративного фонда «Samruk-Kazyna Trust».
+
 СТРОГИЕ ПРАВИЛА:
 1. Отвечай ТОЛЬКО на основе БАЗЫ ЗНАНИЙ ниже.
 2. Если информации нет в базе: "Эта информация отсутствует в базе. Обратитесь напрямую: info@sk-trust.kz или +7(7172)57-68-98"
@@ -27,8 +24,9 @@ export default async function handler(req, res) {
 ${KNOWLEDGE_BASE}
 ---`
       : `Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.
+
 ҚАТАҢ ЕРЕЖЕЛЕР:
-1. ТЕК төмендегі БАЗАДАҒЫ ақпаратқа сүйен.
+1. ТЕК төмендегі базаға сүйен.
 2. Базада жоқ болса: "Бұл ақпарат базада жоқ. Тікелей хабарласыңыз: info@sk-trust.kz немесе +7(7172)57-68-98"
 3. ТЕК қазақ тілінде жауап бер.
 
@@ -55,16 +53,15 @@ ${KNOWLEDGE_BASE}
     const data = await response.json();
 
     if (!response.ok) {
-      console.error('Anthropic error:', data);
       return res.status(500).json({
         error: data?.error?.message || 'AI сервис қатесі'
       });
     }
 
-    const reply = data?.content?.[0]?.text || 'Жауап алынбады.';
-    return res.status(200).json({ reply });
+    return res.status(200).json({
+      reply: data?.content?.[0]?.text || 'Жауап алынбады.'
+    });
   } catch (err) {
-    console.error('Server error:', err);
     return res.status(500).json({ error: 'Сервер қатесі: ' + err.message });
   }
 }
