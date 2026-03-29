@@ -100,7 +100,7 @@ async function main() {
         doneSet.add(key);
 
         console.log(`  ✔ ${i + 1}/${chunks.length}`);
-        await sleep(22000); // 22 секунд күту
+        await sleep(22000);
       } catch (err) {
         console.error(`  ✖ ${file} chunk ${i + 1}: ${err.message}`);
         fs.writeFileSync(OUTPUT_FILE, JSON.stringify(rows));
