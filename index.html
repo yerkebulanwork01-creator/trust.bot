@@ -243,108 +243,90 @@ function formatInline(text) {
 }
 
 function formatText(text) {
-  const lines = String(text || '').split('\n');
-  let html = '';
-  let listType = null; // 'ul' | 'ol'
+  const lines = String(text || "").split("\n");
+
+  let html = "";
+  let inList = false;
+  let listType = null;
 
   for (let line of lines) {
     line = line.trim();
 
     if (!line) {
-      if (listType) {
-        html += listType === 'ol' ? '</ol>' : '</ul>';
+      if (inList) {
+        html += listType === "ol" ? "</ol>" : "</ul>";
+        inList = false;
         listType = null;
       }
       continue;
     }
 
-    // Headers
-    if (line.startsWith('## ') || line.startsWith('### ')) {
-      if (listType) {
-        html += listType === 'ol' ? '</ol>' : '</ul>';
-        listType = null;
+    // ==== NUMBERED LIST (FIXED) ====
+    if (/^\d+\.\s+/.test(line)) {
+      if (!inList || listType !== "ol") {
+        if (inList) html += "</ul>";
+        html += "<ol>";
+        inList = true;
+        listType = "ol";
       }
-      html += '<p class="section-title">' + esc(line.replace(/^#+\s*/, '').replace(/\*\*/g,'')) + '</p>';
+
+      const content = line.replace(/^\d+\.\s+/, "");
+      html += "<li>" + formatInline(content) + "</li>";
+      continue;
     }
 
-    // Bold standalone line
-    else if (line.match(/^\*\*.+\*\*:?$/) || line.match(/^__.+__:?$/)) {
-      if (listType) {
-        html += listType === 'ol' ? '</ol>' : '</ul>';
-        listType = null;
+    // ==== BULLET LIST ====
+    if (/^[-•]\s+/.test(line)) {
+      if (!inList || listType !== "ul") {
+        if (inList) html += "</ol>";
+        html += "<ul>";
+        inList = true;
+        listType = "ul";
       }
-      html += '<p class="section-title">' + esc(line.replace(/\*\*/g,'').replace(/__/g,'')) + '</p>';
+
+      const content = line.replace(/^[-•]\s+/, "");
+      html += "<li>" + formatInline(content) + "</li>";
+      continue;
     }
 
-    // Numbered list
-    else if (line.match(/^\d+[.)]\s+/)) {
-      if (listType !== 'ol') {
-        if (listType === 'ul') html += '</ul>';
-        html += '<ol>';
-        listType = 'ol';
-      }
-      html += '<li>' + formatInline(line.replace(/^\d+[.)]\s+/, '')) + '</li>';
-    }
-
-    // Bullet list
-    else if (line.startsWith('- ') || line.startsWith('• ') || line.startsWith('* ')) {
-      if (listType !== 'ul') {
-        if (listType === 'ol') html += '</ol>';
-        html += '<ul>';
-        listType = 'ul';
-      }
-      html += '<li>' + formatInline(line.replace(/^[-•*]\s+/, '')) + '</li>';
-    }
-
-    // Template button lines
-    else if (
-      line.startsWith('Үлгісі: https://') ||
-      line.startsWith('Шаблон: https://') ||
-      line.startsWith('Талап/үлгі: https://') ||
-      line.startsWith('Шаблон/требование: https://')
+    // ==== TEMPLATE BUTTON ====
+    if (
+      line.startsWith("Үлгісі: https://") ||
+      line.startsWith("Шаблон: https://") ||
+      line.startsWith("Талап/үлгі: https://")
     ) {
-      if (listType) {
-        html += listType === 'ol' ? '</ol>' : '</ul>';
-        listType = null;
+      if (inList) {
+        html += listType === "ol" ? "</ol>" : "</ul>";
+        inList = false;
       }
-      const url = line.split(': ').slice(1).join(': ').trim();
-      const label = lang === 'ru' ? '📎 Открыть шаблон' : '📎 Үлгіні ашу';
-      html += '<p><a class="doc-link-btn" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a></p>';
+
+      const url = line.split(": ")[1];
+
+      html += `
+        <p>
+          <a class="doc-link-btn" href="${url}" target="_blank">
+            📎 Үлгіні ашу
+          </a>
+        </p>
+      `;
+      continue;
     }
 
-    // Regular paragraph
-    else {
-      if (listType) {
-        html += listType === 'ol' ? '</ol>' : '</ul>';
-        listType = null;
-      }
-      html += '<p>' + formatInline(line) + '</p>';
+    // ==== NORMAL TEXT ====
+    if (inList) {
+      html += listType === "ol" ? "</ol>" : "</ul>";
+      inList = false;
     }
+
+    html += "<p>" + formatInline(line) + "</p>";
   }
 
-  if (listType) {
-    html += listType === 'ol' ? '</ol>' : '</ul>';
+  if (inList) {
+    html += listType === "ol" ? "</ol>" : "</ul>";
   }
 
-  return html || '<p>' + esc(text) + '</p>';
+  return html;
 }
-
-const M = document.getElementById('messages');
-const I = document.getElementById('inp');
-const B = document.getElementById('btn');
-
-I.addEventListener('input', () => {
-  I.style.height='auto';
-  I.style.height=Math.min(I.scrollHeight,120)+'px';
-});
-
-I.addEventListener('keydown', e => {
-  if(e.key === 'Enter' && !e.shiftKey){
-    e.preventDefault();
-    send();
-  }
-});
-
 function ask(t) {
   const clean = t.replace(/^[^\s]+\s/, '');
   I.value = clean;
