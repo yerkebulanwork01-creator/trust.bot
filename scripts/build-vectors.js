@@ -1,13 +1,8 @@
 import fs from "fs";
 import path from "path";
-import VoyageAI from "voyageai";
 
 const DATA_DIR = path.join(process.cwd(), "knowledge_files");
 const OUTPUT_FILE = path.join(process.cwd(), "vectors.json");
-
-const client = new VoyageAI({
-  apiKey: process.env.VOYAGE_API_KEY
-});
 
 function chunkText(text, size = 800, overlap = 150) {
   const clean = String(text || "").trim();
@@ -28,16 +23,30 @@ function chunkText(text, size = 800, overlap = 150) {
 }
 
 async function embedTexts(texts) {
-  const response = await client.embed({
-    model: "voyage-3-lite",
-    input: texts
+  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.VOYAGE_API_KEY}`
+    },
+    body: JSON.stringify({
+      input: texts,
+      model: "voyage-3-lite",
+      input_type: "document"
+    })
   });
 
-  if (!response?.data || !Array.isArray(response.data)) {
-    throw new Error("VoyageAI embedding response бос немесе қате");
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.message || JSON.stringify(data));
   }
 
-  return response.data.map((item) => item.embedding);
+  if (!Array.isArray(data?.data)) {
+    throw new Error("Voyage embedding response қате");
+  }
+
+  return data.data.map((item) => item.embedding);
 }
 
 async function main() {
