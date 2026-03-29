@@ -1,10 +1,12 @@
 import fs from "fs";
+import path from "path";
 
+const VECTORS_FILE = path.join(process.cwd(), "vectors.json");
 let VECTOR_CACHE = null;
 
 function getVectors() {
   if (!VECTOR_CACHE) {
-    VECTOR_CACHE = JSON.parse(fs.readFileSync("./vectors.json", "utf-8"));
+    VECTOR_CACHE = JSON.parse(fs.readFileSync(VECTORS_FILE, "utf-8"));
     console.log("Vectors loaded:", VECTOR_CACHE.length);
   }
   return VECTOR_CACHE;
@@ -26,18 +28,26 @@ function cosine(a, b) {
 }
 
 async function embedQuery(query) {
-  const VoyageAI = (await import("voyageai")).default;
-
-  const client = new VoyageAI({
-    apiKey: process.env.VOYAGE_API_KEY
+  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${process.env.VOYAGE_API_KEY}`
+    },
+    body: JSON.stringify({
+      input: [query],
+      model: "voyage-3-lite",
+      input_type: "query"
+    })
   });
 
-  const response = await client.embed({
-    model: "voyage-3-lite",
-    input: [query]
-  });
+  const data = await response.json();
 
-  return response.data[0].embedding;
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.message || JSON.stringify(data));
+  }
+
+  return data.data[0].embedding;
 }
 
 function fallback(lang) {
@@ -67,7 +77,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Хабарлама бос" });
     }
 
-    if (!fs.existsSync("./vectors.json")) {
+    if (!fs.existsSync(VECTORS_FILE)) {
       return res.status(500).json({ error: "vectors.json табылмады" });
     }
 
