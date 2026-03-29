@@ -227,10 +227,37 @@ function formatText(text) {
 }
 
 function formatInline(text) {
-  return esc(text)
-    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-    .replace(/__(.+?)__/g, '<strong>$1</strong>')
-    .replace(/`(.+?)`/g, '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px">$1</code>');
+  let s = esc(text);
+
+  // 1. Markdown link: [text](https://...)
+  s = s.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+
+  // 2. Обычный URL: https://...
+  s = s.replace(
+    /(^|[\s(>])(https?:\/\/[^\s<]+)/g,
+    '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
+  );
+
+  // 3. mailto:
+  s = s.replace(
+    /(^|[\s(>])(mailto:[^\s<]+)/g,
+    '$1<a href="$2">$2</a>'
+  );
+
+  // 4. Bold
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+  // 5. Inline code
+  s = s.replace(
+    /`(.+?)`/g,
+    '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px">$1</code>'
+  );
+
+  return s;
 }
 
 function esc(s) {
