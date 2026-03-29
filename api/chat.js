@@ -1,422 +1,234 @@
-const KNOWLEDGE_BASE = `
-================================================================
-SAMRUK-KAZYNA TRUST — ТОЛЫҚ АҚПАРАТ БАЗАСЫ
-================================================================
+import fs from "fs";
+import path from "path";
 
-[1] ҚОР ТУРАЛЫ
-Атауы: Корпоративный фонд «Samruk-Kazyna Trust»
-Қазақша: «Samruk-Kazyna Trust» Корпоративтік Қоры
-Құрылған жылы: 2016 жылғы қаңтар
-Құрылтайшы: АО «Самрук-Қазына»
-Мақсаты: АО «Самрук-Қазына» тобының бірыңғай қайырымдылық операторы
+const DATA_DIR = path.join(process.cwd(), "knowledge_files");
+let KNOWLEDGE_CACHE = null;
 
-Миссия:
-Қазақстан халқының әлеуметтік-экономикалық жағдайын жақсартуға
-және Қазақстан Республикасының өркендеуіне ықпал ету.
-
-Негізгі нәтижелер:
-- 400+ жоба
-- 4 500 000+ бенефициар
-- 500 000+ адам жыл сайын қолдау алады
-- 18 қызметкер
-
-Жұмыс бағыттары:
-- білім беру
-- денсаулық сақтау
-- бұқаралық спорт
-- мәдениет
-- инклюзия
-- әлеуметтік кәсіпкерлік
-- өңірлік бағдарламалар
-
-[2] БАЙЛАНЫС
-Сайт: www.sk-trust.kz
-Email: info@sk-trust.kz
-Телефон: +7 (7172) 57 68 98
-Сенім телефоны: +7 (7172) 57 69 37 / 57 64 97 / 57 66 02
-Мекенжай: Астана қ., Сығанақ к-сі, 17/10, 11-қабат
-
-[3] ӨТІНІМ БЕРУ
-Кім бере алады:
-- тек тіркелген ҮЕҰ/НКО
-- кемінде 1 жыл жұмыс тәжірибесі
-- тек қазақстандық ұйымдар
-- жеке тұлғалар ЖОҚ
-- шетелдік ҮЕҰ ЖОҚ
-- коммерциялық ұйымдар ЖОҚ
-
-Тәсілдері:
-1. Онлайн — www.sk-trust.kz
-2. Email — info@sk-trust.kz
-3. Пошта арқылы
-4. Кеңсеге жеке апару
-Мессенджер арқылы — ЖОҚ
-
-Қарастыру мерзімі:
-- 10–15 жұмыс күні
-- әрі қарай Қамқоршылық кеңес шешімі
-
-[4] ҚАЖЕТТІ ҚҰЖАТТАР
-1. Бас директор атына хат-өтініш
-2. Қайырымдылық көмек туралы өтініш (Қосымша №2)
-3. Жарғы және өзгерістер
-4. Құрылтай шарты (бар болса)
-5. Egov анықтамасы (10 күннен аспаған)
-6. Қол қоюшының жеке куәлігі
-7. Өкілеттілікті растайтын құжат
-8. Банктік шот анықтамасы
-9. Шығыстар сметасы (Қосымша №3)
-10. Сметаға түсіндірме жазба
-11. Смета баптарының есептеулері
-12. Кемінде 3 баға ұсынысы
-13. Жобаны іске асыру жоспары
-14. Ақпараттық сүйемелдеу жоспары
-15. НПО анкетасы
-16. Комплаенс құжаттары
-17. Жобаның презентациясы немесе видеосы
-
-[5] БАСШЫЛЫҚ
-Бас директор: Альфия Даулеткалиевна Адиева
-Бас директор орынбасары: Аман Жақсыбайұлы Түрегелдин
-Бас бухгалтер: Айгүл Темірханқызы Джусупова
-
-[6] ҚҰЖАТТАРҒА СІЛТЕМЕЛЕР
-Жалпы құжаттар бөлімі:
-https://sk-trust.kz/documents
-
-Категориялар:
-- Закупки: https://sk-trust.kz/documents?category=procurement
-- Публичный годовой отчет: https://sk-trust.kz/documents?category=public-annual-report
-- Корпоративные документы: https://sk-trust.kz/documents?category=corporate-documents
-- Архив: https://sk-trust.kz/documents?category=archive
-- Отчеты: https://sk-trust.kz/documents?category=reports
-`;
-
-function normalizeText(text = '') {
+function normalizeText(text = "") {
   return String(text)
     .toLowerCase()
-    .replace(/[^a-zа-яёәіңғүұқөһ0-9\s]/gi, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/[^a-zа-яёәіңғүұқөһ0-9\s]/gi, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
-function getDocLinks(lang) {
-  if (lang === 'ru') {
-    return `
-<div class="doc-links">
-  <div class="doc-card">
-    <div class="doc-title">Документы фонда</div>
-    <div class="doc-desc">Ниже доступны быстрые ссылки на основные разделы документов фонда.</div>
-    <a class="doc-btn" href="https://sk-trust.kz/documents" target="_blank" rel="noopener noreferrer">Открыть все документы</a>
-  </div>
+function chunkText(text, size = 1200, overlap = 200) {
+  const chunks = [];
+  const clean = String(text || "").trim();
 
-  <div class="doc-grid">
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=procurement" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Закупки</span>
-      <span class="doc-open">Открыть</span>
-    </a>
+  if (!clean) return chunks;
 
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=public-annual-report" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Публичный годовой отчет</span>
-      <span class="doc-open">Открыть</span>
-    </a>
+  let start = 0;
 
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=corporate-documents" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Корпоративные документы</span>
-      <span class="doc-open">Открыть</span>
-    </a>
+  while (start < clean.length) {
+    const end = Math.min(start + size, clean.length);
+    const chunk = clean.slice(start, end).trim();
 
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=archive" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Архив</span>
-      <span class="doc-open">Открыть</span>
-    </a>
+    if (chunk) {
+      chunks.push(chunk);
+    }
 
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=reports" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Отчеты</span>
-      <span class="doc-open">Открыть</span>
-    </a>
-  </div>
-</div>`;
+    if (end >= clean.length) break;
+    start += size - overlap;
   }
 
-  return `
-<div class="doc-links">
-  <div class="doc-card">
-    <div class="doc-title">Қор құжаттары</div>
-    <div class="doc-desc">Төменде қор құжаттарының негізгі бөлімдеріне жылдам сілтемелер берілген.</div>
-    <a class="doc-btn" href="https://sk-trust.kz/documents" target="_blank" rel="noopener noreferrer">Барлық құжаттарды ашу</a>
-  </div>
-
-  <div class="doc-grid">
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=procurement" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Сатып алулар</span>
-      <span class="doc-open">Ашу</span>
-    </a>
-
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=public-annual-report" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Жария жылдық есеп</span>
-      <span class="doc-open">Ашу</span>
-    </a>
-
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=corporate-documents" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Корпоративтік құжаттар</span>
-      <span class="doc-open">Ашу</span>
-    </a>
-
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=archive" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Архив</span>
-      <span class="doc-open">Ашу</span>
-    </a>
-
-    <a class="doc-item" href="https://sk-trust.kz/documents?category=reports" target="_blank" rel="noopener noreferrer">
-      <span class="doc-name">Есептер</span>
-      <span class="doc-open">Ашу</span>
-    </a>
-  </div>
-</div>`;
+  return chunks;
 }
 
-function directAnswer(message, lang) {
-  const q = normalizeText(message);
-  const isRu = lang === 'ru';
+function buildKnowledgeBase() {
+  if (!fs.existsSync(DATA_DIR)) {
+    return [];
+  }
 
-  const kk = {
-    about: `## Қор туралы
+  const files = fs.readdirSync(DATA_DIR).filter((file) => {
+    const full = path.join(DATA_DIR, file);
+    return fs.statSync(full).isFile() && file.toLowerCase().endsWith(".txt");
+  });
 
-**Samruk-Kazyna Trust** — 2016 жылғы қаңтарда құрылған корпоративтік қор.  
-Құрылтайшысы — **«Самұрық-Қазына» АҚ**.
+  const allChunks = [];
 
-**Негізгі мәліметтер:**
-- 400-ден астам жоба жүзеге асырылған
-- 4 500 000-нан астам бенефициар
-- Жыл сайын 500 000-нан астам адам қолдау алады
-- Қорда 18 қызметкер бар
+  for (const file of files) {
+    const fullPath = path.join(DATA_DIR, file);
+    const content = fs.readFileSync(fullPath, "utf-8");
+    const chunks = chunkText(content);
 
-**Негізгі бағыттары:**
-- білім беру
-- денсаулық сақтау
-- спорт
-- мәдениет
-- инклюзия
-- әлеуметтік кәсіпкерлік
-- өңірлік бағдарламалар`,
+    for (const chunk of chunks) {
+      allChunks.push({
+        source: file,
+        text: chunk
+      });
+    }
+  }
 
-    apply: `## Өтінім беру тәртібі
+  return allChunks;
+}
 
-**Өтінім бере алады:**
-- тек тіркелген ҮЕҰ/НКО
-- кемінде 1 жыл жұмыс тәжірибесі бар ұйымдар
-- тек қазақстандық ұйымдар
+function getKnowledge() {
+  if (!KNOWLEDGE_CACHE) {
+    KNOWLEDGE_CACHE = buildKnowledgeBase();
+    console.log("Knowledge loaded:", KNOWLEDGE_CACHE.length);
+  }
+  return KNOWLEDGE_CACHE;
+}
 
-**Өтінім беру тәсілдері:**
-1. Онлайн — www.sk-trust.kz
-2. Email — info@sk-trust.kz
-3. Пошта арқылы
-4. Кеңсеге жеке апару
+function scoreChunk(chunkTextRaw, query) {
+  const chunk = normalizeText(chunkTextRaw);
+  const q = normalizeText(query);
 
-**Маңызды:**
-- жеке тұлғалар өтінім бере алмайды
-- мессенджер арқылы қабылданбайды
+  if (!q) return 0;
 
-**Қарастыру мерзімі:**
-- 10–15 жұмыс күні
-- кейін Қамқоршылық кеңестің шешімі қажет`,
+  let score = 0;
 
-    docs: `## Қажетті құжаттар
+  if (chunk.includes(q)) score += 50;
 
-**Міндетті құжаттар:**
-1. Бас директор атына хат-өтініш
-2. Қайырымдылық көмек туралы өтініш
-3. Жарғы және барлық өзгерістер
-4. Құрылтай шарты (бар болса)
-5. Egov анықтамасы
-6. Қол қоюшының жеке куәлігі
-7. Өкілеттілікті растайтын құжат
-8. Банктік шот анықтамасы
-9. Шығыстар сметасы
-10. Сметаға түсіндірме жазба
-11. Есептеулер
-12. Кемінде 3 баға ұсынысы
-13. Іске асыру жоспары
-14. Ақпараттық сүйемелдеу жоспары
-15. НПО анкетасы
-16. Комплаенс құжаттары
-17. Презентация немесе видео
+  const words = q.split(" ").filter(Boolean);
+  const uniqueWords = [...new Set(words)];
 
-## Құжат сілтемелері
-${getDocLinks('kk')}`,
+  for (const word of uniqueWords) {
+    if (word.length < 2) continue;
+    if (chunk.includes(word)) score += 5;
+  }
 
-    contacts: `## Байланыс
+  return score;
+}
 
-- Сайт: www.sk-trust.kz
-- Email: info@sk-trust.kz
-- Телефон: +7 (7172) 57 68 98
-- Сенім телефоны: +7 (7172) 57 69 37 / 57 64 97 / 57 66 02
-- Мекенжай: Астана қ., Сығанақ к-сі, 17/10, 11-қабат`,
+function searchKnowledge(chunks, query, limit = 6) {
+  return chunks
+    .map((item) => ({
+      ...item,
+      score: scoreChunk(item.text, query)
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit);
+}
 
-    management: `## Басшылық
-
-- Бас директор: Альфия Даулеткалиевна Адиева
-- Бас директор орынбасары: Аман Жақсыбайұлы Түрегелдин
-- Бас бухгалтер: Айгүл Темірханқызы Джусупова`,
-
-    docsOnly: `## Қор құжаттарына сілтемелер
-
-${getDocLinks('kk')}`
-  };
-
-  const ru = {
-    about: `## О фонде
-
-**Samruk-Kazyna Trust** — корпоративный фонд, созданный в январе 2016 года.  
-Учредитель — **АО «Самрук-Казына»**.
-
-**Основные данные:**
-- реализовано более 400 проектов
-- более 4 500 000 бенефициаров
-- ежегодно поддержку получают более 500 000 человек
-- в фонде 18 сотрудников
-
-**Основные направления:**
-- образование
-- здравоохранение
-- спорт
-- культура
-- инклюзия
-- социальное предпринимательство
-- региональные программы`,
-
-    apply: `## Подача заявки
-
-**Кто может подать:**
-- только зарегистрированные НПО
-- организации с опытом работы не менее 1 года
-- только казахстанские организации
-
-**Способы подачи:**
-1. Онлайн — www.sk-trust.kz
-2. Email — info@sk-trust.kz
-3. Почтой
-4. Лично в офисе
-
-**Важно:**
-- физические лица не могут подать заявку
-- через мессенджеры заявки не принимаются
-
-**Срок рассмотрения:**
-- 10–15 рабочих дней
-- далее решение Попечительского совета`,
-
-    docs: `## Необходимые документы
-
-**Обязательные документы:**
-1. Письмо-обращение на имя Генерального директора
-2. Обращение об оказании благотворительной помощи
-3. Устав и изменения
-4. Учредительный договор (при наличии)
-5. Справка с Egov
-6. Удостоверение личности подписанта
-7. Документ о полномочиях
-8. Справка о банковском счёте
-9. Смета расходов
-10. Пояснительная записка к смете
-11. Расчёты по статьям сметы
-12. Не менее 3 ценовых предложений
-13. План реализации проекта
-14. План информационного сопровождения
-15. Анкета НПО
-16. Документы для комплаенс-проверки
-17. Презентация или видео проекта
-
-## Ссылки на документы
-${getDocLinks('ru')}`,
-
-    contacts: `## Контакты
-
-- Сайт: www.sk-trust.kz
-- Email: info@sk-trust.kz
-- Телефон: +7 (7172) 57 68 98
-- Горячая линия: +7 (7172) 57 69 37 / 57 64 97 / 57 66 02
-- Адрес: г. Астана, ул. Сыганак, 17/10, 11 этаж`,
-
-    management: `## Руководство
-
-- Генеральный директор: Альфия Даулеткалиевна Адиева
-- Заместитель генерального директора: Аман Жақсыбайұлы Түрегелдин
-- Главный бухгалтер: Айгүл Темірханқызы Джусупова`,
-
-    docsOnly: `## Ссылки на документы фонда
-
-${getDocLinks('ru')}`
-  };
-
-  const t = isRu ? ru : kk;
-
-  if ((q.includes('қор') && q.includes('туралы')) || (q.includes('о') && q.includes('фонде'))) return t.about;
-  if (q.includes('өтінім') || q.includes('заявк')) return t.apply;
-  if (q.includes('қажетті') && q.includes('құжат')) return t.docs;
-  if (q.includes('құжат') || q.includes('документ')) return t.docsOnly;
-  if (q.includes('байланыс') || q.includes('контакт')) return t.contacts;
-  if (q.includes('басшылық') || q.includes('руковод')) return t.management;
-
-  return null;
+function getFallback(lang) {
+  return lang === "ru"
+    ? "Эта информация отсутствует в базе. Обратитесь напрямую: info@sk-trust.kz или +7 (7172) 57 68 98"
+    : "Бұл ақпарат базада жоқ. Тікелей хабарласыңыз: info@sk-trust.kz немесе +7 (7172) 57 68 98";
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
     const { message, lang } = req.body || {};
+    const safeLang = lang === "ru" ? "ru" : "kk";
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      return res.status(500).json({ error: 'ANTHROPIC_API_KEY жоқ' });
+      return res.status(500).json({ error: "ANTHROPIC_API_KEY жоқ" });
     }
 
     if (!message || !String(message).trim()) {
-      return res.status(400).json({ error: 'Хабарлама бос болмауы керек' });
+      return res.status(400).json({ error: "Хабарлама бос" });
     }
 
-    const fast = directAnswer(message, lang);
-    if (fast) {
-      return res.status(200).json({ reply: fast });
+    const knowledge = getKnowledge();
+
+    if (!knowledge.length) {
+      return res.status(200).json({
+        reply: getFallback(safeLang)
+      });
     }
 
-    const isRu = lang === 'ru';
+    const topChunks = searchKnowledge(knowledge, String(message), 6);
+    console.log("TOP CHUNKS:", topChunks.map(x => ({
+      source: x.source,
+      score: x.score,
+      preview: x.text.slice(0, 120)
+    })));
 
-    const system = isRu
-      ? `Ты официальный ассистент Корпоративного фонда «Samruk-Kazyna Trust».
-Отвечай ТОЛЬКО по базе знаний ниже.
-Если информации нет, отвечай дословно:
-"Эта информация отсутствует в базе. Обратитесь напрямую: info@sk-trust.kz или +7 (7172) 57 68 98"
-Отвечай только на русском языке.
-Если пользователь просит документы или ссылки на документы, обязательно дай ссылки из базы.`
-      : `Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.
-ТЕК төмендегі база бойынша жауап бер.
-Егер ақпарат жоқ болса, дәл былай жаз:
-"Бұл ақпарат базада жоқ. Тікелей хабарласыңыз: info@sk-trust.kz немесе +7 (7172) 57 68 98"
-ТЕК қазақ тілінде жауап бер.
-Егер пайдаланушы құжаттар не құжат сілтемелерін сұраса, міндетті түрде базадағы сілтемелерді бер.`;
+    if (!topChunks.length || (topChunks[0] && topChunks[0].score < 1)) {
+      return res.status(200).json({
+        reply: getFallback(safeLang)
+      });
+    }
 
-    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
+    const context = topChunks
+      .map((item, index) => {
+        return `[${index + 1}] SOURCE: ${item.source}\n${item.text}`;
+      })
+      .join("\n\n---\n\n");
+
+    const system =
+      safeLang === "ru"
+        ? `Ты официальный помощник фонда Samruk-Kazyna Trust.
+
+ТВОЯ ЗАДАЧА:
+Отвечать пользователю на основе контекста ниже.
+
+ПРАВИЛА:
+1. Отвечай, опираясь в первую очередь на предоставленный контекст.
+2. Если в контексте нет точной формулировки, но есть близкая и полезная информация, используй ее и дай максимально полезный ответ.
+3. Не говори сразу "информации нет", если можно дать частичный, близкий или логически вытекающий ответ из контекста.
+4. Не придумывай новые факты, которых нет в контексте.
+5. Можно:
+   - кратко перефразировать,
+   - объединять несколько фрагментов контекста,
+   - делать осторожный логический вывод, если он прямо следует из контекста.
+6. Если вопрос про документы, требования, этапы, контакты, сроки или порядок подачи:
+   - отвечай списком,
+   - делай ответ структурированным и удобным для чтения.
+7. Если в контексте есть ссылка, можно показать ее в ответе.
+8. Только если в контексте вообще нет даже близкой информации, ответь дословно:
+"${getFallback("ru")}"
+
+СТИЛЬ ОТВЕТА:
+- официальный
+- понятный
+- короткий, но полезный
+- только на русском языке
+
+КОНТЕКСТ:
+${context}`
+        : `Сен Samruk-Kazyna Trust қорының ресми көмекшісісің.
+
+СЕНІҢ МІНДЕТІҢ:
+Төмендегі контекстке сүйеніп пайдаланушының сұрағына жауап беру.
+
+ЕРЕЖЕЛЕР:
+1. Жауапты ең алдымен берілген контекстке сүйеніп бер.
+2. Егер контекстте дәлме-дәл жауап болмаса, бірақ соған жақын әрі пайдалы ақпарат болса, соны пайдаланып, барынша пайдалы жауап бер.
+3. Бірден "базада жоқ" деп жазба, егер контексттен ішінара, жақын немесе логикалық түрде шығатын жауап беруге болса.
+4. Контекстте жоқ жаңа факт ойдан қоспа.
+5. Мына әрекеттерге болады:
+   - қысқаша өз сөзіңмен түсіндіру,
+   - бірнеше контекст бөлігін біріктіру,
+   - егер қорытынды контексттен тікелей шығатын болса, абайлап логикалық қорытынды жасау.
+6. Егер сұрақ құжаттар, талаптар, кезеңдер, байланыс, мерзімдер немесе өтінім беру тәртібі туралы болса:
+   - тізіммен жауап бер,
+   - жауапты құрылымды әрі оқуға ыңғайлы қыл.
+7. Егер контекстте сілтеме болса, оны жауапта көрсетуге болады.
+8. Тек контекстте мүлде жақын ақпарат жоқ болған жағдайда ғана дәл былай жаз:
+"${getFallback("kk")}"
+
+ЖАУАП СТИЛІ:
+- ресми
+- түсінікті
+- қысқа, бірақ пайдалы
+- тек қазақ тілінде
+
+КОНТЕКСТ:
+${context}`;
+
+    const anthropicResponse = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
       headers: {
-        'content-type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
+        "x-api-key": apiKey,
+        "content-type": "application/json",
+        "anthropic-version": "2023-06-01"
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 1200,
-        system: `${system}
-
-БІЛІМ БАЗАСЫ / БАЗА ЗНАНИЙ:
-${KNOWLEDGE_BASE}`,
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1000,
+        system: system,
         messages: [
           {
-            role: 'user',
+            role: "user",
             content: String(message).trim()
           }
         ]
@@ -426,22 +238,22 @@ ${KNOWLEDGE_BASE}`,
     const data = await anthropicResponse.json();
 
     if (!anthropicResponse.ok) {
-      console.error('Anthropic error:', data);
+      console.error("Anthropic error:", data);
       return res.status(500).json({
-        error: data?.error?.message || 'AI сервис қатесі'
+        error: data?.error?.message || "AI сервис қатесі"
       });
     }
 
     const reply =
-      data?.content?.find?.((item) => item.type === 'text')?.text ||
+      data?.content?.find?.((item) => item.type === "text")?.text ||
       data?.content?.[0]?.text ||
-      (lang === 'ru' ? 'Ответ не получен.' : 'Жауап алынбады.');
+      getFallback(safeLang);
 
     return res.status(200).json({ reply });
   } catch (err) {
-    console.error('Server crash:', err);
+    console.error("Server crash:", err);
     return res.status(500).json({
-      error: 'Сервер қатесі: ' + err.message
+      error: "Сервер қатесі: " + err.message
     });
   }
 }
