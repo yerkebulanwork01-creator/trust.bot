@@ -79,19 +79,106 @@ Email: info@sk-trust.kz
 Бас директор: Альфия Даулеткалиевна Адиева
 Бас директор орынбасары: Аман Жақсыбайұлы Түрегелдин
 Бас бухгалтер: Айгүл Темірханқызы Джусупова
+
+[6] ҚҰЖАТТАРҒА СІЛТЕМЕЛЕР
+Жалпы құжаттар бөлімі:
+https://sk-trust.kz/documents
+
+Категориялар:
+- Закупки: https://sk-trust.kz/documents?category=procurement
+- Публичный годовой отчет: https://sk-trust.kz/documents?category=public-annual-report
+- Корпоративные документы: https://sk-trust.kz/documents?category=corporate-documents
+- Архив: https://sk-trust.kz/documents?category=archive
+- Отчеты: https://sk-trust.kz/documents?category=reports
 `;
 
 function normalizeText(text = '') {
   return String(text)
     .toLowerCase()
-    .replace(/[\u{1F300}-\u{1FAFF}]/gu, ' ')
-    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
+    .replace(/[^a-zа-яёәіңғүұқөһ0-9\s]/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
+function getDocLinks(lang) {
+  if (lang === 'ru') {
+    return `
+<div class="doc-links">
+  <div class="doc-card">
+    <div class="doc-title">Документы фонда</div>
+    <div class="doc-desc">Ниже доступны быстрые ссылки на основные разделы документов фонда.</div>
+    <a class="doc-btn" href="https://sk-trust.kz/documents" target="_blank" rel="noopener noreferrer">Открыть все документы</a>
+  </div>
+
+  <div class="doc-grid">
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=procurement" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Закупки</span>
+      <span class="doc-open">Открыть</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=public-annual-report" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Публичный годовой отчет</span>
+      <span class="doc-open">Открыть</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=corporate-documents" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Корпоративные документы</span>
+      <span class="doc-open">Открыть</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=archive" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Архив</span>
+      <span class="doc-open">Открыть</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=reports" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Отчеты</span>
+      <span class="doc-open">Открыть</span>
+    </a>
+  </div>
+</div>`;
+  }
+
+  return `
+<div class="doc-links">
+  <div class="doc-card">
+    <div class="doc-title">Қор құжаттары</div>
+    <div class="doc-desc">Төменде қор құжаттарының негізгі бөлімдеріне жылдам сілтемелер берілген.</div>
+    <a class="doc-btn" href="https://sk-trust.kz/documents" target="_blank" rel="noopener noreferrer">Барлық құжаттарды ашу</a>
+  </div>
+
+  <div class="doc-grid">
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=procurement" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Сатып алулар</span>
+      <span class="doc-open">Ашу</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=public-annual-report" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Жария жылдық есеп</span>
+      <span class="doc-open">Ашу</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=corporate-documents" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Корпоративтік құжаттар</span>
+      <span class="doc-open">Ашу</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=archive" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Архив</span>
+      <span class="doc-open">Ашу</span>
+    </a>
+
+    <a class="doc-item" href="https://sk-trust.kz/documents?category=reports" target="_blank" rel="noopener noreferrer">
+      <span class="doc-name">Есептер</span>
+      <span class="doc-open">Ашу</span>
+    </a>
+  </div>
+</div>`;
+}
+
 function directAnswer(message, lang) {
   const q = normalizeText(message);
+  const isRu = lang === 'ru';
 
   const kk = {
     about: `## Қор туралы
@@ -133,7 +220,7 @@ function directAnswer(message, lang) {
 
 **Қарастыру мерзімі:**
 - 10–15 жұмыс күні
-- қосымша Қамқоршылық кеңестің шешімі қажет`,
+- кейін Қамқоршылық кеңестің шешімі қажет`,
 
     docs: `## Қажетті құжаттар
 
@@ -154,7 +241,10 @@ function directAnswer(message, lang) {
 14. Ақпараттық сүйемелдеу жоспары
 15. НПО анкетасы
 16. Комплаенс құжаттары
-17. Презентация немесе видео`,
+17. Презентация немесе видео
+
+## Құжат сілтемелері
+${getDocLinks('kk')}`,
 
     contacts: `## Байланыс
 
@@ -168,7 +258,11 @@ function directAnswer(message, lang) {
 
 - Бас директор: Альфия Даулеткалиевна Адиева
 - Бас директор орынбасары: Аман Жақсыбайұлы Түрегелдин
-- Бас бухгалтер: Айгүл Темірханқызы Джусупова`
+- Бас бухгалтер: Айгүл Темірханқызы Джусупова`,
+
+    docsOnly: `## Қор құжаттарына сілтемелер
+
+${getDocLinks('kk')}`
   };
 
   const ru = {
@@ -232,7 +326,10 @@ function directAnswer(message, lang) {
 14. План информационного сопровождения
 15. Анкета НПО
 16. Документы для комплаенс-проверки
-17. Презентация или видео проекта`,
+17. Презентация или видео проекта
+
+## Ссылки на документы
+${getDocLinks('ru')}`,
 
     contacts: `## Контакты
 
@@ -246,16 +343,21 @@ function directAnswer(message, lang) {
 
 - Генеральный директор: Альфия Даулеткалиевна Адиева
 - Заместитель генерального директора: Аман Жақсыбайұлы Түрегелдин
-- Главный бухгалтер: Айгүл Темірханқызы Джусупова`
+- Главный бухгалтер: Айгүл Темірханқызы Джусупова`,
+
+    docsOnly: `## Ссылки на документы фонда
+
+${getDocLinks('ru')}`
   };
 
-  const t = lang === 'ru' ? ru : kk;
+  const t = isRu ? ru : kk;
 
-  if (q.includes('қор туралы') || q.includes('о фонде')) return t.about;
-  if (q.includes('өтінім беру') || q.includes('подать заявку') || q.includes('подача заявки')) return t.apply;
-  if (q.includes('қажетті құжат') || q.includes('список документов') || q.includes('құжаттар')) return t.docs;
+  if ((q.includes('қор') && q.includes('туралы')) || (q.includes('о') && q.includes('фонде'))) return t.about;
+  if (q.includes('өтінім') || q.includes('заявк')) return t.apply;
+  if (q.includes('қажетті') && q.includes('құжат')) return t.docs;
+  if (q.includes('құжат') || q.includes('документ')) return t.docsOnly;
   if (q.includes('байланыс') || q.includes('контакт')) return t.contacts;
-  if (q.includes('басшылық') || q.includes('руководство')) return t.management;
+  if (q.includes('басшылық') || q.includes('руковод')) return t.management;
 
   return null;
 }
@@ -289,12 +391,14 @@ export default async function handler(req, res) {
 Отвечай ТОЛЬКО по базе знаний ниже.
 Если информации нет, отвечай дословно:
 "Эта информация отсутствует в базе. Обратитесь напрямую: info@sk-trust.kz или +7 (7172) 57 68 98"
-Отвечай только на русском языке.`
+Отвечай только на русском языке.
+Если пользователь просит документы или ссылки на документы, обязательно дай ссылки из базы.`
       : `Сен «Samruk-Kazyna Trust» корпоративтік қорының ресми ассистентісің.
 ТЕК төмендегі база бойынша жауап бер.
 Егер ақпарат жоқ болса, дәл былай жаз:
 "Бұл ақпарат базада жоқ. Тікелей хабарласыңыз: info@sk-trust.kz немесе +7 (7172) 57 68 98"
-ТЕК қазақ тілінде жауап бер.`;
+ТЕК қазақ тілінде жауап бер.
+Егер пайдаланушы құжаттар не құжат сілтемелерін сұраса, міндетті түрде базадағы сілтемелерді бер.`;
 
     const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
