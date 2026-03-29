@@ -1,21 +1,23 @@
-export async function POST(req) {
+export default async function handler(req, res) {
   try {
-    const { message } = await req.json();
+    if (req.method !== 'POST') {
+      return res.status(405).json({ error: 'Method not allowed' });
+    }
+
+    const { message } = req.body || {};
 
     if (!message || typeof message !== 'string') {
-      return Response.json(
-        { error: 'Message дұрыс берілмеген' },
-        { status: 400 }
-      );
+      return res.status(400).json({
+        error: 'Message дұрыс берілмеген'
+      });
     }
 
     const apiKey = process.env.ANTHROPIC_API_KEY;
 
     if (!apiKey) {
-      return Response.json(
-        { error: 'ANTHROPIC_API_KEY табылмады' },
-        { status: 500 }
-      );
+      return res.status(500).json({
+        error: 'ANTHROPIC_API_KEY табылмады'
+      });
     }
 
     const r = await fetch('https://api.anthropic.com/v1/messages', {
@@ -40,25 +42,19 @@ export async function POST(req) {
     const d = await r.json();
 
     if (!r.ok) {
-      return Response.json(
-        {
-          error: d?.error?.message || 'Anthropic сұрауы сәтсіз аяқталды',
-          details: d
-        },
-        { status: r.status }
-      );
+      return res.status(r.status).json({
+        error: d?.error?.message || 'Anthropic сұрауы сәтсіз аяқталды',
+        details: d
+      });
     }
 
-    return Response.json({
+    return res.status(200).json({
       reply: d?.content?.[0]?.text || 'Жауап жоқ'
     });
   } catch (error) {
-    return Response.json(
-      {
-        error: 'Server error',
-        details: error?.message || 'Белгісіз қате'
-      },
-      { status: 500 }
-    );
+    return res.status(500).json({
+      error: 'Server error',
+      details: error?.message || 'Белгісіз қате'
+    });
   }
 }
