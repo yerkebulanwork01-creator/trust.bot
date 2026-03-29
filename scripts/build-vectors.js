@@ -22,6 +22,10 @@ function chunkText(text, size = 800, overlap = 150) {
   return chunks;
 }
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function embedTexts(texts) {
   const response = await fetch("https://api.voyageai.com/v1/embeddings", {
     method: "POST",
@@ -42,11 +46,7 @@ async function embedTexts(texts) {
     throw new Error(data?.detail || data?.message || JSON.stringify(data));
   }
 
-  if (!Array.isArray(data?.data)) {
-    throw new Error("Voyage embedding response қате");
-  }
-
-  return data.data.map((item) => item.embedding);
+  return data.data.map(item => item.embedding);
 }
 
 async function main() {
@@ -58,16 +58,18 @@ async function main() {
     throw new Error("knowledge_files папкасы табылмады");
   }
 
+  let rows = [];
+  if (fs.existsSync(OUTPUT_FILE)) {
+    rows = JSON.parse(fs.readFileSync(OUTPUT_FILE, "utf-8"));
+    console.log(`Бұрынғы vectors loaded: ${rows.length}`);
+  }
+
+  const doneSet = new Set(rows.map(r => `${r.source}:::${r.text}`));
+
   const files = fs.readdirSync(DATA_DIR).filter((file) => {
     const full = path.join(DATA_DIR, file);
     return fs.statSync(full).isFile() && file.endsWith(".txt");
   });
-
-  if (!files.length) {
-    throw new Error("knowledge_files ішінде .txt файл жоқ");
-  }
-
-  const rows = [];
 
   for (const file of files) {
     const full = path.join(DATA_DIR, file);
@@ -76,24 +78,37 @@ async function main() {
 
     console.log(`Файл: ${file}, chunk саны: ${chunks.length}`);
 
-    const batchSize = 10;
-    for (let i = 0; i < chunks.length; i += batchSize) {
-      const batch = chunks.slice(i, i + batchSize);
-      const embeddings = await embedTexts(batch);
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      const key = `${file}:::${chunk}`;
 
-      for (let j = 0; j < batch.length; j++) {
-        rows.push({
-          source: file,
-          text: batch[j],
-          embedding: embeddings[j]
-        });
+      if (doneSet.has(key)) {
+        console.log(`  ↷ skip ${i + 1}/${chunks.length}`);
+        continue;
       }
 
-      console.log(`  → ${Math.min(i + batchSize, chunks.length)}/${chunks.length}`);
+      try {
+        const embeddings = await embedTexts([chunk]);
+
+        rows.push({
+          source: file,
+          text: chunk,
+          embedding: embeddings[0]
+        });
+
+        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(rows));
+        doneSet.add(key);
+
+        console.log(`  ✔ ${i + 1}/${chunks.length}`);
+        await sleep(22000); // 22 секунд күту
+      } catch (err) {
+        console.error(`  ✖ ${file} chunk ${i + 1}: ${err.message}`);
+        fs.writeFileSync(OUTPUT_FILE, JSON.stringify(rows));
+        throw err;
+      }
     }
   }
 
-  fs.writeFileSync(OUTPUT_FILE, JSON.stringify(rows));
   console.log(`DONE: ${OUTPUT_FILE}`);
   console.log(`Жалпы vector саны: ${rows.length}`);
 }
