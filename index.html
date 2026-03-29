@@ -57,14 +57,34 @@ header{flex-shrink:0;background:var(--white);padding:14px 18px 12px;display:flex
 
 /* BUBBLE CONTENT */
 .bub p{margin-bottom:6px}.bub p:last-child{margin-bottom:0}
-.bub ul,.bub ol{margin:6px 0 6px 18px}
-.bub li{margin-bottom:4px}
+.bub ul,.bub ol{margin:6px 0 10px 20px;padding-left:0}
+.bub li{margin-bottom:8px}
 .bub strong{font-weight:700}
 .bub .section-title{font-weight:700;color:var(--blue);margin:10px 0 5px;font-size:13.5px}
 .row.user .bub .section-title{color:rgba(255,255,255,.9)}
 .bub hr{border:none;border-top:1px solid var(--border);margin:8px 0}
-.bub a{color:var(--blue);text-decoration:none;font-weight:500}
+.bub a{color:var(--blue);text-decoration:none;font-weight:500;word-break:break-word}
 .row.user .bub a{color:rgba(255,255,255,.9);text-decoration:underline}
+
+/* DOC BUTTONS */
+.bub a.doc-link-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:6px;
+  padding:7px 12px;
+  border-radius:10px;
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:#fff !important;
+  text-decoration:none !important;
+  font-weight:600;
+  font-size:12.5px;
+  box-shadow:0 4px 12px rgba(37,99,235,.22);
+}
+.bub a.doc-link-btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 6px 16px rgba(37,99,235,.28);
+}
 
 /* TYPING */
 .tdots{display:flex;gap:5px;align-items:center;padding:4px 2px}
@@ -157,8 +177,7 @@ function setLang(l, btn) {
   const t = TEXTS[l];
   document.getElementById('status-text').textContent = t.status;
   document.getElementById('inp').placeholder = t.placeholder;
-  document.getElementById('hint').textContent = t.hint.replace('·','·');
-  // Update welcome if still visible
+  document.getElementById('hint').textContent = t.hint;
   const wt = document.getElementById('w-title');
   if (wt) {
     wt.textContent = t.wTitle;
@@ -182,76 +201,39 @@ function renderChips() {
 }
 renderChips();
 
-// Format bot response nicely
-function formatText(text) {
-  // Clean markdown symbols but preserve structure
-  const lines = text.split('\n');
-  let html = '';
-  let inList = false;
-
-  for (let line of lines) {
-    line = line.trim();
-    if (!line) {
-      if (inList) { html += '</ul>'; inList = false; }
-      continue;
-    }
-
-    // Section headers (##, **)
-    if (line.startsWith('## ') || line.startsWith('### ')) {
-      if (inList) { html += '</ul>'; inList = false; }
-      html += '<p class="section-title">' + esc(line.replace(/^#+\s*/, '').replace(/\*\*/g,'')) + '</p>';
-    }
-    // Bold standalone line
-    else if (line.match(/^\*\*.+\*\*:?$/) || line.match(/^__.+__:?$/)) {
-      if (inList) { html += '</ul>'; inList = false; }
-      html += '<p class="section-title">' + esc(line.replace(/\*\*/g,'').replace(/__/g,'')) + '</p>';
-    }
-    // Bullet list
-    else if (line.startsWith('- ') || line.startsWith('• ') || line.startsWith('* ')) {
-      if (!inList) { html += '<ul>'; inList = true; }
-      html += '<li>' + formatInline(line.replace(/^[-•*]\s+/, '')) + '</li>';
-    }
-    // Numbered list
-    else if (line.match(/^\d+[.)]\s+/)) {
-      if (!inList) { html += '<ul>'; inList = true; }
-      html += '<li>' + formatInline(line.replace(/^\d+[.)]\s+/, '')) + '</li>';
-    }
-    // Regular paragraph
-    else {
-      if (inList) { html += '</ul>'; inList = false; }
-      html += '<p>' + formatInline(line) + '</p>';
-    }
-  }
-  if (inList) html += '</ul>';
-  return html || '<p>' + esc(text) + '</p>';
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
 }
 
 function formatInline(text) {
   let s = esc(text);
 
-  // 1. Markdown link: [text](https://...)
+  // Markdown link: [text](https://...)
   s = s.replace(
     /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
     '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
   );
 
-  // 2. Обычный URL: https://...
+  // Bare URL: https://...
   s = s.replace(
     /(^|[\s(>])(https?:\/\/[^\s<]+)/g,
     '$1<a href="$2" target="_blank" rel="noopener noreferrer">$2</a>'
   );
 
-  // 3. mailto:
+  // mailto:
   s = s.replace(
     /(^|[\s(>])(mailto:[^\s<]+)/g,
     '$1<a href="$2">$2</a>'
   );
 
-  // 4. Bold
+  // Bold
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/__(.+?)__/g, '<strong>$1</strong>');
 
-  // 5. Inline code
+  // Inline code
   s = s.replace(
     /`(.+?)`/g,
     '<code style="background:#f1f5f9;padding:1px 5px;border-radius:4px;font-size:12.5px">$1</code>'
@@ -260,51 +242,170 @@ function formatInline(text) {
   return s;
 }
 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+function formatText(text) {
+  const lines = String(text || '').split('\n');
+  let html = '';
+  let listType = null; // 'ul' | 'ol'
+
+  for (let line of lines) {
+    line = line.trim();
+
+    if (!line) {
+      if (listType) {
+        html += listType === 'ol' ? '</ol>' : '</ul>';
+        listType = null;
+      }
+      continue;
+    }
+
+    // Headers
+    if (line.startsWith('## ') || line.startsWith('### ')) {
+      if (listType) {
+        html += listType === 'ol' ? '</ol>' : '</ul>';
+        listType = null;
+      }
+      html += '<p class="section-title">' + esc(line.replace(/^#+\s*/, '').replace(/\*\*/g,'')) + '</p>';
+    }
+
+    // Bold standalone line
+    else if (line.match(/^\*\*.+\*\*:?$/) || line.match(/^__.+__:?$/)) {
+      if (listType) {
+        html += listType === 'ol' ? '</ol>' : '</ul>';
+        listType = null;
+      }
+      html += '<p class="section-title">' + esc(line.replace(/\*\*/g,'').replace(/__/g,'')) + '</p>';
+    }
+
+    // Numbered list
+    else if (line.match(/^\d+[.)]\s+/)) {
+      if (listType !== 'ol') {
+        if (listType === 'ul') html += '</ul>';
+        html += '<ol>';
+        listType = 'ol';
+      }
+      html += '<li>' + formatInline(line.replace(/^\d+[.)]\s+/, '')) + '</li>';
+    }
+
+    // Bullet list
+    else if (line.startsWith('- ') || line.startsWith('• ') || line.startsWith('* ')) {
+      if (listType !== 'ul') {
+        if (listType === 'ol') html += '</ol>';
+        html += '<ul>';
+        listType = 'ul';
+      }
+      html += '<li>' + formatInline(line.replace(/^[-•*]\s+/, '')) + '</li>';
+    }
+
+    // Template button lines
+    else if (
+      line.startsWith('Үлгісі: https://') ||
+      line.startsWith('Шаблон: https://') ||
+      line.startsWith('Талап/үлгі: https://') ||
+      line.startsWith('Шаблон/требование: https://')
+    ) {
+      if (listType) {
+        html += listType === 'ol' ? '</ol>' : '</ul>';
+        listType = null;
+      }
+      const url = line.split(': ').slice(1).join(': ').trim();
+      const label = lang === 'ru' ? '📎 Открыть шаблон' : '📎 Үлгіні ашу';
+      html += '<p><a class="doc-link-btn" href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a></p>';
+    }
+
+    // Regular paragraph
+    else {
+      if (listType) {
+        html += listType === 'ol' ? '</ol>' : '</ul>';
+        listType = null;
+      }
+      html += '<p>' + formatInline(line) + '</p>';
+    }
+  }
+
+  if (listType) {
+    html += listType === 'ol' ? '</ol>' : '</ul>';
+  }
+
+  return html || '<p>' + esc(text) + '</p>';
 }
 
 const M = document.getElementById('messages');
 const I = document.getElementById('inp');
 const B = document.getElementById('btn');
 
-I.addEventListener('input', () => { I.style.height='auto'; I.style.height=Math.min(I.scrollHeight,120)+'px'; });
-I.addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()} });
+I.addEventListener('input', () => {
+  I.style.height='auto';
+  I.style.height=Math.min(I.scrollHeight,120)+'px';
+});
+
+I.addEventListener('keydown', e => {
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    send();
+  }
+});
 
 function ask(t) {
-  // Strip emoji from chip text for cleaner message
   const clean = t.replace(/^[^\s]+\s/, '');
-  I.value = clean; send();
+  I.value = clean;
+  send();
 }
 
 function addMsg(role, text) {
-  const w = document.getElementById('welcome'); if(w) w.remove();
-  const row = document.createElement('div'); row.className='row '+(role==='user'?'user':'bot');
-  const av = document.createElement('div'); av.className='av'; av.textContent=role==='user'?'👤':'🏛️';
-  const bub = document.createElement('div'); bub.className='bub';
-  if(role==='typing') { bub.innerHTML='<div class="tdots"><span></span><span></span><span></span></div>'; }
-  else { bub.innerHTML = formatText(text); }
-  row.appendChild(av); row.appendChild(bub);
-  M.appendChild(row); M.scrollTop=M.scrollHeight;
+  const w = document.getElementById('welcome');
+  if(w) w.remove();
+
+  const row = document.createElement('div');
+  row.className='row ' + (role==='user' ? 'user' : 'bot');
+
+  const av = document.createElement('div');
+  av.className='av';
+  av.textContent = role==='user' ? '👤' : '🏛️';
+
+  const bub = document.createElement('div');
+  bub.className='bub';
+
+  if(role==='typing') {
+    bub.innerHTML='<div class="tdots"><span></span><span></span><span></span></div>';
+  } else {
+    bub.innerHTML = formatText(text);
+  }
+
+  row.appendChild(av);
+  row.appendChild(bub);
+  M.appendChild(row);
+  M.scrollTop=M.scrollHeight;
   return row;
 }
 
 async function send() {
-  const text = I.value.trim(); if(!text||B.disabled) return;
-  I.value=''; I.style.height='auto'; B.disabled=true;
+  const text = I.value.trim();
+  if(!text || B.disabled) return;
+
+  I.value='';
+  I.style.height='auto';
+  B.disabled=true;
+
   addMsg('user', text);
   const typing = addMsg('typing','');
+
   try {
     const r = await fetch('/api/chat', {
-      method:'POST', headers:{'Content-Type':'application/json'},
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
       body: JSON.stringify({ message: text, lang: lang })
     });
-    const d = await r.json(); typing.remove();
-    addMsg('bot', d.error ? '⚠️ '+d.error : d.reply);
+
+    const d = await r.json();
+    typing.remove();
+    addMsg('bot', d.error ? '⚠️ ' + d.error : d.reply);
   } catch {
-    typing.remove(); addMsg('bot', TEXTS[lang].error);
+    typing.remove();
+    addMsg('bot', TEXTS[lang].error);
   }
-  B.disabled=false; I.focus();
+
+  B.disabled=false;
+  I.focus();
 }
 </script>
 </body>
