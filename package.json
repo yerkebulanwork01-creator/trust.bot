@@ -2,5 +2,11 @@
   "name": "trust-bot",
   "version": "1.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "build-vectors": "node scripts/build-vectors.js"
+  },
+  "dependencies": {
+    "voyageai": "^0.0.6"
+  }
 }
