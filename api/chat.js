@@ -92,7 +92,7 @@ export default async function handler(req, res) {
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
 
-    if (!top.length || top[0].score < 0.15) {
+    if (!top.length || top[0].score < 0.05) {
       return res.status(200).json({ reply: fallback(safeLang) });
     }
 
